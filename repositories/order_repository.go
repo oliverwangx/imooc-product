@@ -13,13 +13,12 @@ type IOrderRepository interface {
 	Delete(int64) bool
 	Update(*datamodels.Order) error
 	SelectByKey(int64) (*datamodels.Order, error)
-	Selectall() ([]*datamodels.Order, error)
+	SelectAll() ([]*datamodels.Order, error)
 	SelectAllWithInfo() (map[int]map[string]string, error)
 }
 
 func NewOrderMangerRepository(table string, sql *sql.DB) IOrderRepository {
 	return &OrderMangerRepository{table: table, mysqlConn: sql}
-
 }
 
 type OrderMangerRepository struct {
@@ -36,7 +35,7 @@ func (o *OrderMangerRepository) Conn() error {
 		o.mysqlConn = mysql
 	}
 	if o.table == "" {
-		o.table = "order"
+		o.table = "orderp"
 	}
 	return nil
 }
@@ -46,36 +45,33 @@ func (o *OrderMangerRepository) Insert(order *datamodels.Order) (productID int64
 		return
 	}
 
-	sql := "INSERT " + o.table + " set userID=?, productID=？，orderStatus=?"
+	sql := "INSERT " + o.table + " set userID=?,productID=?,orderStatus=?"
 	stmt, errStmt := o.mysqlConn.Prepare(sql)
+	defer stmt.Close()
 	if errStmt != nil {
-		return productID, err
+		return productID, errStmt
 	}
 	result, errResult := stmt.Exec(order.UserId, order.ProductId, order.OrderStatus)
-
 	if errResult != nil {
-		return productID, err
+		return productID, errResult
 	}
-
 	return result.LastInsertId()
-
 }
 
-func (o *OrderMangerRepository) Delete(productID int64) (isOk bool) {
+func (o *OrderMangerRepository) Delete(orderID int64) (isOk bool) {
 	if err := o.Conn(); err != nil {
 		return
 	}
 	sql := "delete from " + o.table + " where ID =?"
 	stmt, errStmt := o.mysqlConn.Prepare(sql)
+	defer stmt.Close()
 	if errStmt != nil {
 		return
 	}
-
-	_, err := stmt.Exec(productID)
+	_, err := stmt.Exec(orderID)
 	if err != nil {
 		return
 	}
-
 	return true
 }
 
@@ -84,29 +80,29 @@ func (o *OrderMangerRepository) Update(order *datamodels.Order) (err error) {
 		return errConn
 	}
 
-	sql := "Update " + o.table + "set userID=?, productID=?, orderStatus=? Where ID =" + strconv.FormatInt(order.ID, 10)
-
+	sql := "Update " + o.table + " set userID=?,productID=?,orderStatus=? Where ID=" + strconv.FormatInt(order.ID, 10)
 	stmt, errStmt := o.mysqlConn.Prepare(sql)
+	defer stmt.Close()
 	if errStmt != nil {
 		return errStmt
 	}
-
 	_, err = stmt.Exec(order.UserId, order.ProductId, order.OrderStatus)
 	return
 }
 
 func (o *OrderMangerRepository) SelectByKey(orderID int64) (order *datamodels.Order, err error) {
 	if errConn := o.Conn(); errConn != nil {
-		return &datamodels.Order{}, errConn
+		return nil, errConn
 	}
 
-	sql := "Select * From " + o.table + " where ID=" + strconv.FormatInt(orderID, 10)
+	sql := "Select * From " + o.table + " where ID =" + strconv.FormatInt(orderID, 10)
+
 	row, errRow := o.mysqlConn.Query(sql)
+
 	defer row.Close()
 	if errRow != nil {
-		return &datamodels.Order{}, errRow
+		return nil, errRow
 	}
-
 	result := common.GetResultRow(row)
 	if len(result) == 0 {
 		return &datamodels.Order{}, err
@@ -114,7 +110,7 @@ func (o *OrderMangerRepository) SelectByKey(orderID int64) (order *datamodels.Or
 
 	order = &datamodels.Order{}
 	common.DataToStructByTagSql(result, order)
-	return
+	return order, nil
 }
 
 func (o *OrderMangerRepository) SelectAll() (orderArray []*datamodels.Order, err error) {
@@ -144,7 +140,7 @@ func (o *OrderMangerRepository) SelectAllWithInfo() (OrderMap map[int]map[string
 	if errConn := o.Conn(); errConn != nil {
 		return nil, errConn
 	}
-	sql := "Select o.ID,p.productName,o.orderStatus From imooc.order as o left join product as p on o.productID=p.ID"
+	sql := "Select o.ID,p.productName,o.orderStatus From imooc.orderp as o left join product as p on o.productID=p.ID"
 	rows, errRows := o.mysqlConn.Query(sql)
 	defer rows.Close()
 	if errRows != nil {

@@ -1,10 +1,10 @@
 package datamodels
 
 type Order struct {
-	ID          int64 `sql:"ID"`
-	UserId      int64 `sql:"userID"`
-	ProductId   int64 `sql:"productID"`
-	OrderStatus int64 `sql:"orderStatus"`
+	ID          int64 `sql:"ID" imooc:"ID"`
+	UserId      int64 `sql:"userID" imooc:"UserID"`
+	ProductId   int64 `sql:"productID" imooc:"ProductID"`
+	OrderStatus int64 `sql:"orderStatus" imooc:"OrderStatus"`
 }
 
 const (
