@@ -7,6 +7,7 @@ import (
 	"github.com/kataras/iris/sessions"
 	"github.com/opentracing/opentracing-go/log"
 	"imooc-product/common"
+	"imooc-product/fronted/middleware"
 	"imooc-product/fronted/web/controllers"
 	"imooc-product/repositories"
 	"imooc-product/services"
@@ -47,6 +48,15 @@ func main() {
 	userPro := mvc.New(app.Party("/user"))
 	userPro.Register(userService, ctx, sess.Start)
 	userPro.Handle(new(controllers.UserController))
+
+	// 注册product控制器
+	product := repositories.NewProductManager("product", db)
+	productService := services.NewProductService(product)
+	proProduct := app.Party("/product")
+	pro := mvc.New(proProduct)
+	proProduct.Use(middleware.AuthConProduct)
+	pro.Register(productService, sess.Start)
+	pro.Handle(new(controllers.ProductController))
 
 	app.Run(
 		iris.Addr("0.0.0.0:8082"),

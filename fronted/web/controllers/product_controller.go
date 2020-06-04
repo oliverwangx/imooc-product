@@ -14,7 +14,8 @@ type ProductController struct {
 }
 
 func (p *ProductController) GetDetail() mvc.View {
-	product, err := p.ProductService.GetProductByID(1)
+
+	product, err := p.ProductService.GetProductByID(4)
 	if err != nil {
 		p.Ctx.Application().Logger().Error(err)
 	}
