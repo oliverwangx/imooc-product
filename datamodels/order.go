@@ -4,7 +4,7 @@ type Order struct {
 	ID          int64 `sql:"ID" imooc:"ID"`
 	UserId      int64 `sql:"userID" imooc:"UserID"`
 	ProductId   int64 `sql:"productID" imooc:"ProductID"`
-	OrderStatus int64 `sql:"orderStatus" imooc:"OrderStatus"`
+	OrderStatus int   `sql:"orderStatus" imooc:"OrderStatus"`
 }
 
 const (
