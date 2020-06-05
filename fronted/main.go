@@ -52,7 +52,7 @@ func main() {
 	// 注册product控制器
 	product := repositories.NewProductManager("product", db)
 	productService := services.NewProductService(product)
-	order := repositories.NewOrderMangerRepository("order", db)
+	order := repositories.NewOrderMangerRepository("orderp", db)
 	orderService := services.NewOrderService(order)
 	proProduct := app.Party("/product")
 	pro := mvc.New(proProduct)
