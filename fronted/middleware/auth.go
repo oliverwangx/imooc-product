@@ -9,7 +9,6 @@ func AuthConProduct(ctx iris.Context) {
 		ctx.Redirect("/user/login")
 		return
 	}
-	ctx.Application().Logger().Debug(uid)
 	ctx.Application().Logger().Debug("已经登陆")
 	ctx.Next()
 }
