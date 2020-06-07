@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/mvc"
 	"github.com/kataras/iris/sessions"
@@ -25,22 +26,26 @@ var (
 )
 
 func (p *ProductController) GetGenerateHtml() {
-	productString := p.Ctx.URLParam("productID")
+	productString := "4"
 	productID, err := strconv.Atoi(productString)
 	if err != nil {
 		p.Ctx.Application().Logger().Debug(err)
 	}
 	//1. 获取模版文件地址
-	contentTmp, err := template.ParseFiles(filepath.Join(templatePath), "product.html")
+	contentTmp, err := template.ParseFiles(filepath.Join(templatePath, "product.html"))
+
 	if err != nil {
 		p.Ctx.Application().Logger().Debug(err)
+		return
 	}
 	//2. 获取html生成路径
 	fileName := filepath.Join(htmlOutPath, "htmlProduct.html")
 	//3. 获取模版渲染数据
 	product, err := p.ProductService.GetProductByID(int64(productID))
+	fmt.Println(product.ProductNum, product.ProductUrl, productID)
 	if err != nil {
 		p.Ctx.Application().Logger().Debug(err)
+		return
 	}
 	//4. 生成静态文件
 	generateStaticHtml(p.Ctx, contentTmp, fileName, product)
@@ -54,14 +59,17 @@ func generateStaticHtml(ctx iris.Context, template *template.Template, fileName 
 		err := os.Remove(fileName)
 		if err != nil {
 			ctx.Application().Logger().Error(err)
+			return
 		}
 	}
 	//2.生成静态文件
-	file, err := os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		ctx.Application().Logger().Error(err)
+		return
 	}
 	defer file.Close()
+	fmt.Println(file)
 	template.Execute(file, &product)
 
 }
