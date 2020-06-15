@@ -4,14 +4,12 @@ import (
 	"context"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/mvc"
-	"github.com/kataras/iris/sessions"
 	"github.com/opentracing/opentracing-go/log"
 	"imooc-product/common"
 	"imooc-product/fronted/middleware"
 	"imooc-product/fronted/web/controllers"
 	"imooc-product/repositories"
 	"imooc-product/services"
-	"time"
 )
 
 func main() {
@@ -40,15 +38,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sess := sessions.New(sessions.Config{
-		Cookie:  "helloworld",
-		Expires: 60 * time.Minute,
-	})
+	//sess := sessions.New(sessions.Config{
+	//	Cookie:  "helloworld",
+	//	Expires: 60 * time.Minute,
+	//})
 
 	user := repositories.NewUserRepository("user", db)
 	userService := services.NewService(user)
 	userPro := mvc.New(app.Party("/user"))
-	userPro.Register(userService, ctx, sess.Start)
+	userPro.Register(userService, ctx)
 	userPro.Handle(new(controllers.UserController))
 
 	// 注册product控制器
@@ -59,7 +57,7 @@ func main() {
 	proProduct := app.Party("/product")
 	pro := mvc.New(proProduct)
 	proProduct.Use(middleware.AuthConProduct)
-	pro.Register(productService, orderService, sess.Start)
+	pro.Register(productService, orderService)
 	pro.Handle(new(controllers.ProductController))
 
 	app.Run(
