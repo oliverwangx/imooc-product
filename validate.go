@@ -6,8 +6,48 @@ import (
 	"imooc-product/common"
 	"imooc-product/encrypt"
 	"net/http"
+	"sync"
 )
 
+var hostArray = []string{"127.0.0.1", "127.0.0.1"}
+
+var localHost = "127.0.0.1"
+
+var port = "8081"
+
+var hashConsistent *common.Consistent
+
+// 用来存放控制信息
+type AccessControl struct {
+	//用来存放用户想要存放的信息
+	sourcesArray map[int]interface{}
+	*sync.RWMutex
+}
+
+// 创建全局变量
+var accessControl = &AccessControl{sourcesArray: make(map[int]interface{})}
+
+// 获取指定的数据
+
+func (m *AccessControl) GetNewRecord(uid int) interface{} {
+	m.RWMutex.RLock()
+	defer m.RWMutex.Unlock()
+	data := m.sourcesArray[uid]
+	return data
+}
+
+// 设置记录
+func (m *AccessControl) SetNewRecord(uid int) {
+	m.RWMutex.Lock()
+	m.sourcesArray[uid] = "hello imooc"
+	m.RWMutex.Unlock()
+}
+
+func (m *AccessControl) GetDistributedRight(req *http.Request) bool {
+
+}
+
+// 执行正常业务逻辑
 func Check(w http.ResponseWriter, r *http.Request) {
 	// 执行正常业务逻辑
 	fmt.Println("执行check！")
@@ -60,6 +100,15 @@ func checkInfo(checkStr string, signStr string) bool {
 }
 
 func main() {
+	// 负载均衡器设置
+	// 采用一致性哈希算法
+	hashConsistent = common.NewConsistent()
+
+	for _, v := range hostArray {
+		hashConsistent.Add(v)
+
+	}
+	// 采用一致性hash算法
 	//1. 过滤器
 	filter := common.NewFilter()
 	// 注册拦截器
