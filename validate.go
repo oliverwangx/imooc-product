@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"imooc-product/common"
 	"imooc-product/encrypt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 )
 
@@ -44,6 +46,95 @@ func (m *AccessControl) SetNewRecord(uid int) {
 }
 
 func (m *AccessControl) GetDistributedRight(req *http.Request) bool {
+	// 获取用户ID
+	uid, err := req.Cookie("uid")
+	if err != nil {
+		return false
+	}
+
+	// 采用一致性hash算法， 根据用户ID， 判断获取具体机器
+	hostRequest, err := hashConsistent.Get(uid.Value)
+	if err != nil {
+		return false
+	}
+
+	// 判断是否为本机
+	if hostRequest == localHost {
+		//执行本机数据读取和校验
+		return m.GetDataFromMap(uid.Value)
+	} else {
+		// 不是本机充当代理访问数据返回结果
+		return GetDataFromOtherMap(hostRequest, req)
+
+	}
+
+}
+
+// 获取本机map, 并且处理业务逻辑， 返回的结果类型为bool类型
+func (m *AccessControl) GetDataFromMap(uid string) (isOk bool) {
+	uidInt, err := strconv.Atoi(uid)
+	if err != nil {
+		return false
+	}
+
+	data := m.GetNewRecord(uidInt)
+
+	// 执行逻辑判断
+	if data != nil {
+		return true
+	}
+	return
+}
+
+// 获取其他节点处理结果
+func GetDataFromOtherMap(host string, request *http.Request) bool {
+	// 获取Uid
+	uidPre, err := request.Cookie("uid")
+	if err != nil {
+		return false
+	}
+	// 获取sign
+	uidSign, err := request.Cookie("sign")
+	if err != nil {
+		return false
+	}
+
+	// 模拟接口访问，
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "http://"+host+
+		":"+port+"/aeecss?uid="+uidPre.Value, nil)
+	if err != nil {
+		return false
+	}
+
+	// 手动指定, 排查多余cookies
+	cookieUid := &http.Cookie{Name: "uid", Value: uidPre.Value, Path: "/"}
+	cookieSign := &http.Cookie{Name: "sign", Value: uidSign.Value, Path: "/"}
+
+	// 添加cookie 到模拟的请求中
+	req.AddCookie(cookieUid)
+	req.AddCookie(cookieSign)
+
+	// 获取返回结果
+
+	response, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return false
+	}
+
+	// 判断状态
+	if response.StatusCode == 200 {
+		if string(body) == "true" {
+			return true
+		} else {
+			return false
+		}
+	}
+	return false
 
 }
 
